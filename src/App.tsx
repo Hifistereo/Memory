@@ -3,7 +3,8 @@ import { BarChart3, ChevronRight, Plus, Settings, Star, Trash2, Volume2, VolumeX
 import { GameArtwork, LogoMark } from './Artwork'
 import GameSession from './GameSession'
 import { gameList } from './games'
-import { createProfile, defaultData, loadData, saveData } from './storage'
+import { createProfile, defaultData, loadData, saveData, syncWithHub } from './storage'
+import * as kmp from './kmp'
 import type { AgeBand, AppData, GameId, GameProgress, Profile } from './types'
 
 const avatars = [
@@ -52,6 +53,12 @@ function ProfilePicker({ data, onSelect, onCreate }: { data: AppData; onSelect: 
       </form>}
     </section>
     <p className="privacy-note">Bez reklāmām · Bez pirkumiem · Dati paliek šajā ierīcē</p>
+    {/* Back to the other KidMindPath games. Profile picker only — this is the
+        screen a grown-up is looking at, and a control that leaves the app has
+        no business next to a running game. Absolute URL because the app is
+        also served from hifistereo.github.io/Memory/, where "/" is a
+        different site. */}
+    <a className="kmp-home hub-link" href="https://www.kidmindpath.com/"><span aria-hidden="true">←</span> KidMindPath</a>
   </main>
 }
 
@@ -100,6 +107,32 @@ function Home({ profile, ageFilter, setAgeFilter, onGame, onProfiles, onCaregive
   </main>
 }
 
+/* The caregiver view can reset progress and delete a profile, and until now
+   anything with a finger could open it. The hub gates its parent area with the
+   same arithmetic question; this is the in-app twin of it. Not security —
+   anyone determined gets in — just enough that a five-year-old does not wipe
+   their sibling's stars by tapping around. */
+function CaregiverGate({ onPass, onClose }: { onPass: () => void; onClose: () => void }) {
+  const [a] = useState(() => 3 + Math.floor(Math.random() * 7))
+  const [b] = useState(() => 4 + Math.floor(Math.random() * 8))
+  const [value, setValue] = useState('')
+  const [wrong, setWrong] = useState(false)
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault()
+    if (Number(value) === a * b) return onPass()
+    setWrong(true); setValue('')
+  }
+  return <div className="modal-backdrop"><section className="caregiver-modal caregiver-gate" role="dialog" aria-modal="true" aria-labelledby="gate-title">
+    <header><div><p className="eyebrow">Pieaugušo skats</p><h1 id="gate-title">Atrisini, lai turpinātu</h1></div><button className="icon-button" onClick={onClose} aria-label="Aizvērt"><X/></button></header>
+    <form onSubmit={submit}>
+      <p className="gate-sum">{a} × {b} = ?</p>
+      <input autoFocus type="number" inputMode="numeric" value={value} aria-label={`${a} reiz ${b}`} onChange={(e) => { setValue(e.target.value); setWrong(false) }}/>
+      <p className="gate-error" role="alert">{wrong ? 'Nepareizi. Mēģini vēlreiz.' : ''}</p>
+      <button className="primary-button" type="submit">Turpināt</button>
+    </form>
+  </section></div>
+}
+
 function CaregiverView({ profile, onClose, onUpdate, onDelete }: { profile: Profile; onClose: () => void; onUpdate: (profile: Profile) => void; onDelete: () => void }) {
   const totalSessions = Object.values(profile.progress).reduce((sum, p) => sum + p.sessions, 0)
   const totalAttempts = Object.values(profile.progress).reduce((sum, p) => sum + p.attempts, 0)
@@ -126,20 +159,67 @@ export default function App() {
   const selectedProfile = useMemo(() => data.profiles.find((p) => p.id === data.selectedProfileId) ?? null, [data])
   const [ageFilter, setAgeFilter] = useState<AgeBand>(selectedProfile?.ageBand ?? '4-5')
   const [caregiverOpen, setCaregiverOpen] = useState(false)
+  const [caregiverUnlocked, setCaregiverUnlocked] = useState(false)
+  // kmp.js is plain localStorage with no change notification, so a write from
+  // this tab needs an explicit nudge to re-render, and a write from the hub in
+  // another tab arrives as a `storage` event.
+  const [, bumpPrefs] = useState(0)
+  useEffect(() => {
+    const rerender = () => bumpPrefs((n) => n + 1)
+    window.addEventListener('kmp:prefs', rerender)
+    window.addEventListener('storage', rerender)
+    return () => {
+      window.removeEventListener('kmp:prefs', rerender)
+      window.removeEventListener('storage', rerender)
+    }
+  }, [])
 
   useEffect(() => saveData(data), [data])
   useEffect(() => { if (selectedProfile) setAgeFilter(selectedProfile.ageBand) }, [selectedProfile?.id])
+
+  // Follow the child chosen on kidmindpath.com. A no-op when there is no hub —
+  // opened from hifistereo.github.io, or nobody named yet — so this app's own
+  // profile picker still runs exactly as before.
+  useEffect(() => {
+    const child = kmp.activeChild()
+    if (!child || child.guest) return
+    setData((d) => syncWithHub(d, child, kmp.ageBand()))
+  }, [])
+
+  // The bar back to the hub, on every screen. Memory writes on every state
+  // change, so there is nothing extra to flush before leaving.
+  useEffect(() => { kmp.homeBar({ title: 'Ciparu dārzs' }) }, [])
+
+  // Global sound / reduced motion set once on the hub, rather than five times.
+  // Only applied when the hub actually has an opinion, so the app's own
+  // per-profile toggles keep working when it does not.
+  const shared = kmp.prefs()
+  const profileWithPrefs = useMemo(() => (
+    selectedProfile && shared
+      ? { ...selectedProfile, preferences: { sound: shared.sound, reducedMotion: shared.reducedMotion } }
+      : selectedProfile
+  ), [selectedProfile, shared?.sound, shared?.reducedMotion])
 
   const selectProfile = (id: string) => { setData((d) => ({ ...d, selectedProfileId: id })); setScreen('home') }
   const addProfile = (profile: Profile) => { setData((d) => ({ ...d, profiles: [...d.profiles, profile], selectedProfileId: profile.id })); setScreen('home') }
   const updateProfile = (updated: Profile) => setData((d) => ({ ...d, profiles: d.profiles.map((p) => p.id === updated.id ? updated : p) }))
   const updateProgress = (gameId: GameId, progress: GameProgress) => setData((d) => ({ ...d, profiles: d.profiles.map((p) => p.id === d.selectedProfileId ? { ...p, progress: { ...p.progress, [gameId]: progress } } : p) }))
 
-  if (!selectedProfile || screen === 'profiles') return <ProfilePicker data={data} onSelect={selectProfile} onCreate={addProfile}/>
-  if (screen === 'game' && activeGame) return <GameSession gameId={activeGame} profile={selectedProfile} onExit={() => setScreen('home')} onProgress={updateProgress}/>
+  if (!profileWithPrefs || !selectedProfile || screen === 'profiles') return <ProfilePicker data={data} onSelect={selectProfile} onCreate={addProfile}/>
+  if (screen === 'game' && activeGame) return <GameSession gameId={activeGame} profile={profileWithPrefs} onExit={() => setScreen('home')} onProgress={updateProgress}/>
+
+  // With the hub present, the sound button is a global setting rather than a
+  // per-profile one — otherwise turning sound off here would be silently
+  // overridden by the shared value on the next render.
+  const profile = selectedProfile
+  const toggleSound = () => {
+    if (shared) return kmp.setPrefs({ ...shared, sound: !shared.sound })
+    updateProfile({ ...profile, preferences: { ...profile.preferences, sound: !profile.preferences.sound } })
+  }
 
   return <>
-    <Home profile={selectedProfile} ageFilter={ageFilter} setAgeFilter={setAgeFilter} onGame={(id) => { setActiveGame(id); setScreen('game') }} onProfiles={() => setScreen('profiles')} onCaregiver={() => setCaregiverOpen(true)} onToggleSound={() => updateProfile({ ...selectedProfile, preferences: { ...selectedProfile.preferences, sound: !selectedProfile.preferences.sound } })}/>
-    {caregiverOpen && <CaregiverView profile={selectedProfile} onClose={() => setCaregiverOpen(false)} onUpdate={updateProfile} onDelete={() => { setData((d) => { const profiles = d.profiles.filter((p) => p.id !== selectedProfile.id); return { ...d, profiles, selectedProfileId: profiles[0]?.id ?? null } }); setCaregiverOpen(false) }}/>} 
+    <Home profile={profileWithPrefs} ageFilter={ageFilter} setAgeFilter={setAgeFilter} onGame={(id) => { setActiveGame(id); setScreen('game') }} onProfiles={() => setScreen('profiles')} onCaregiver={() => setCaregiverOpen(true)} onToggleSound={toggleSound}/>
+    {caregiverOpen && !caregiverUnlocked && <CaregiverGate onPass={() => setCaregiverUnlocked(true)} onClose={() => setCaregiverOpen(false)}/>}
+    {caregiverOpen && caregiverUnlocked && <CaregiverView profile={profileWithPrefs} onClose={() => { setCaregiverOpen(false); setCaregiverUnlocked(false) }} onUpdate={updateProfile} onDelete={() => { setData((d) => { const profiles = d.profiles.filter((p) => p.id !== profile.id); return { ...d, profiles, selectedProfileId: profiles[0]?.id ?? null } }); setCaregiverOpen(false); setCaregiverUnlocked(false) }}/>}
   </>
 }
