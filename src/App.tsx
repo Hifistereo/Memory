@@ -52,6 +52,12 @@ function ProfilePicker({ data, onSelect, onCreate }: { data: AppData; onSelect: 
       </form>}
     </section>
     <p className="privacy-note">Bez reklāmām · Bez pirkumiem · Dati paliek šajā ierīcē</p>
+    {/* Back to the other KidMindPath games. Profile picker only — this is the
+        screen a grown-up is looking at, and a control that leaves the app has
+        no business next to a running game. Absolute URL because the app is
+        also served from hifistereo.github.io/Memory/, where "/" is a
+        different site. */}
+    <a className="kmp-home hub-link" href="https://www.kidmindpath.com/"><span aria-hidden="true">←</span> KidMindPath</a>
   </main>
 }
 

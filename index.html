@@ -3,10 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#fff8ed" />
+    <meta name="theme-color" content="#fffaf2" />
+    <!-- Nothing is fetched from another origin: no CDN, no fonts from Google,
+         no analytics. frame-ancestors is deliberately absent — browsers ignore
+         it in a <meta> policy, and GitHub Pages cannot set response headers. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; media-src 'self'; connect-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'"
+    />
+    <meta name="referrer" content="no-referrer" />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <meta name="description" content="Piecas draudzīgas atmiņas un matemātikas spēles bērniem no 2 līdz 6 gadiem." />
     <title>Ciparu dārzs</title>
+    <!-- KidMindPath design system, copied into public/shared (see README).
+         Must load before the app's own CSS, which resolves var(--kmp-*). -->
+    <link rel="stylesheet" href="./shared/kidmindpath-fonts.css" />
+    <link rel="stylesheet" href="./shared/kidmindpath-tokens.css" />
+    <link rel="stylesheet" href="./shared/kidmindpath-ui.css" />
   </head>
   <body>
     <div id="root"></div>

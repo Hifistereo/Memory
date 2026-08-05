@@ -1,39 +1,57 @@
+/* Neutrals, type, radii and shadows come from the KidMindPath design system in
+   public/shared/ — a synced copy, see README. The variable names below are
+   unchanged on purpose: every call site in this file keeps working and only
+   the values behind them moved.
+
+   The garden colours stay defined here. They are this app's own character, and
+   --green is also its KidMindPath accent — the same green its card carries on
+   kidmindpath.com. */
 :root {
-  font-family: ui-rounded, 'Segoe UI', 'Trebuchet MS', sans-serif;
-  color: #3e3a36;
-  background: #fffaf1;
+  font-family: var(--kmp-font-body);
+  color: var(--kmp-ink);
+  background: var(--kmp-paper);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  --ink: #3e3a36;
-  --muted: #746e67;
-  --cream: #fffaf1;
-  --paper: #ffffff;
-  --green: #3f7f59;
+  --ink: var(--kmp-ink);
+  --muted: var(--kmp-ink-soft);
+  --cream: var(--kmp-paper);
+  --paper: var(--kmp-surface);
+  --green: var(--kmp-memory-hue);
+  --green-deep: var(--kmp-memory-ink);
   --yellow: #f4b54a;
   --orange: #e57845;
-  --line: #e9e1d6;
+  --line: var(--kmp-line);
 }
 
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; min-height: 100vh; background: var(--cream); }
 button, input { font: inherit; }
 button { color: inherit; }
-button:focus-visible, input:focus-visible { outline: 4px solid #277da1; outline-offset: 3px; }
+button:focus-visible, input:focus-visible { outline: 4px solid var(--kmp-sun); outline-offset: 3px; }
 h1, h2, p { margin-top: 0; }
-h1, h2, .brand-lockup strong, .game-copy strong, .round-prompt { font-family: 'Arial Rounded MT Bold', ui-rounded, 'Trebuchet MS', sans-serif; }
+/* Fredoka, self-hosted. This used to ask for 'Arial Rounded MT Bold', which
+   exists only on macOS — everywhere else the headings quietly fell back to a
+   different face than the one they were designed against. Weight 600 because
+   Fredoka ships 400/500/600/700 and nothing heavier. */
+h1, h2, .brand-lockup strong, .game-copy strong, .round-prompt {
+  font-family: var(--kmp-font-display);
+  font-weight: 600;
+}
 button { -webkit-tap-highlight-color: transparent; }
 
 .eyebrow { margin: 0 0 6px; color: var(--green); font-size: .75rem; font-weight: 800; letter-spacing: .15em; text-transform: uppercase; }
 .logo-mark { width: 58px; height: 58px; flex: none; }
 .brand-lockup { position: relative; z-index: 1; display: flex; align-items: center; gap: 11px; }
 .brand-lockup > div { display: flex; flex-direction: column; }
-.brand-lockup strong { color: #3f714e; font-size: 1.6rem; line-height: 1; }
+.brand-lockup strong { color: var(--green-deep); font-size: 1.6rem; line-height: 1; }
 .brand-lockup span { margin-top: 4px; color: #8b7662; font-size: .76rem; font-weight: 700; }
 
-.primary-button, .secondary-button, .check-button { min-height: 54px; border: 0; border-radius: 18px; padding: 0 26px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; cursor: pointer; font-weight: 800; transition: transform .2s, box-shadow .2s; }
-.primary-button { background: var(--green); color: white; box-shadow: 0 6px 0 #2e6544; }
+.primary-button, .secondary-button, .check-button { min-height: 54px; border: 0; border-radius: 18px; padding: 0 26px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; cursor: pointer; font-family: var(--kmp-font-display); font-weight: 600; transition: transform .2s, box-shadow .2s; }
+/* --green carries white text at 4.8:1, so the face keeps the lighter hue and
+   only the pressable lip below it uses the deep shade. */
+.primary-button { background: var(--green); color: white; box-shadow: 0 6px 0 var(--green-deep); }
 .primary-button:hover, .check-button:hover { transform: translateY(-2px); }
-.primary-button:active, .check-button:active { transform: translateY(3px); box-shadow: 0 2px 0 #2e6544; }
+.primary-button:active, .check-button:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--green-deep); }
 .primary-button:disabled { cursor: not-allowed; opacity: .45; transform: none; }
 .secondary-button { background: white; border: 2px solid var(--line); }
 .icon-button { width: 48px; height: 48px; border: 1px solid var(--line); border-radius: 16px; background: white; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
@@ -73,6 +91,9 @@ button { -webkit-tap-highlight-color: transparent; }
 .age-options strong { font-size: 1.45rem; }.age-options span { font-size: .78rem; color: var(--muted); }
 .create-button { margin-top: 30px; }
 .privacy-note { position: relative; z-index: 2; margin: 26px 0 0; color: #668065; font-size: .76rem; font-weight: 700; }
+/* Way back to the other KidMindPath games. Sits below the privacy note, well
+   clear of the profile cards, so it never reads as one of them. */
+.hub-link { position: relative; z-index: 2; margin-top: 14px; }
 
 /* Home */
 .home-page { min-height: 100vh; background: #fffbf4; }
