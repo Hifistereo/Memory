@@ -20,6 +20,8 @@ export interface GameProgress {
 
 export interface Profile {
   id: string
+  /** True once this profile's id is the KidMindPath child id (see syncWithHub). */
+  linkedToHub?: boolean
   nickname: string
   avatar: string
   ageBand: AgeBand

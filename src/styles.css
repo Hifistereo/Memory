@@ -57,6 +57,18 @@ button { -webkit-tap-highlight-color: transparent; }
 .icon-button { width: 48px; height: 48px; border: 1px solid var(--line); border-radius: 16px; background: white; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
 .icon-button svg { width: 21px; }
 
+/* The bar back to kidmindpath.com is fixed to the top of every screen, so
+   every full-height surface has to start below it. Without this the brand
+   lockup and the game grid sit underneath the bar. */
+.profile-page, .home-page, .game-shell { padding-top: calc(var(--kmp-bar-h, 0px) + 12px); }
+
+/* Caregiver gate — the arithmetic question in front of the grown-up view. */
+.caregiver-gate { max-width: 420px; text-align: center; }
+.caregiver-gate .gate-sum { margin: 22px 0 16px; font-family: var(--kmp-font-display); font-size: 2rem; font-weight: 600; letter-spacing: .04em; }
+.caregiver-gate input { width: 160px; height: 60px; padding: 0 16px; border: 2px solid var(--line); border-radius: 16px; background: #fffcf7; text-align: center; font-size: 1.4rem; font-weight: 700; }
+.caregiver-gate .gate-error { min-height: 1.4em; margin: 10px 0 14px; color: #9c2f2f; font-size: .88rem; }
+.caregiver-gate header { text-align: left; }
+
 /* Profiles */
 .profile-page { position: relative; min-height: 100vh; overflow: hidden; padding: 28px clamp(20px, 5vw, 72px); display: flex; flex-direction: column; align-items: center; background: radial-gradient(circle at 85% 10%, #fff0c9 0 6%, transparent 6.2%), linear-gradient(180deg, #fffaf1 0 70%, #e6f1df 70% 100%); }
 .profile-page::before, .profile-page::after { content: ''; position: absolute; bottom: -9vw; width: 75vw; height: 25vw; border-radius: 50% 50% 0 0; background: #d7e9d0; }
