@@ -19,7 +19,7 @@ npm run build
 ## Dizains
 
 `public/shared/` ir **KidMindPath dizaina sistēmas kopija**, nevis šī repozitorija
-pašas kods: Fredoka un Nunito fonti, kā arī kopīgie krāsu, tipogrāfijas,
+pašas kods: Quicksand un Nunito fonti, kā arī kopīgie krāsu, tipogrāfijas,
 atstarpju, noapaļojumu un ēnu marķieri, ar kuriem visas sešas kidmindpath.com
 lapas izskatās kā viena ģimene.
 
@@ -38,9 +38,13 @@ ko der atcerēties:
   Būvējuma laikā Vite brīdina, ka `./shared/…` neeksistē — tā ir gaidīta uzvedība
   `public/` failiem, kas tiek atrisināti izpildlaikā.
 
-Fredoka ir pieejama svaros 400/500/600/700 un ne smagākos. Ja kāds virsraksts
-tiek uzstādīts uz 800, pārlūks to imitē, un rezultāts izskatās nedaudz greizi
-un atšķirīgi katrā pārlūkā.
+Quicksand nomainīja Fredoka, jo Fredoka `latin-ext` apakškopā trūkst gandrīz
+visu latviešu garumzīmju. Starpposmā tika izmēģināts arī Baloo 2 — tam
+garumzīmes (ā/ē/ī/ū) ir, bet tās vizuāli nav savietotas ar burtu. Quicksand ir
+vienīgais no trim, kur latviešu diakritika ir gan pilnīga, gan pareizi novietota.
+Pieejama svaros 400/500/600/700 un ne smagākos — ja kāds virsraksts tiek
+uzstādīts uz 800, pārlūks to imitē, un rezultāts izskatās nedaudz greizi un
+atšķirīgi katrā pārlūkā.
 
 ## Kopīgais profils
 

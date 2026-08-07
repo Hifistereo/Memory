@@ -29,10 +29,12 @@ button, input { font: inherit; }
 button { color: inherit; }
 button:focus-visible, input:focus-visible { outline: 4px solid var(--kmp-sun); outline-offset: 3px; }
 h1, h2, p { margin-top: 0; }
-/* Fredoka, self-hosted. This used to ask for 'Arial Rounded MT Bold', which
+/* Quicksand, self-hosted. This used to ask for 'Arial Rounded MT Bold', which
    exists only on macOS — everywhere else the headings quietly fell back to a
-   different face than the one they were designed against. Weight 600 because
-   Fredoka ships 400/500/600/700 and nothing heavier. */
+   different face than the one they were designed against. Fredoka replaced it
+   first but its latin-ext subset is missing most Latvian diacritics; Baloo 2
+   was tried next but positions combining macrons (ā/ē/ī/ū) off the base
+   letter. Quicksand has full, correctly-positioned Latvian coverage. */
 h1, h2, .brand-lockup strong, .game-copy strong, .round-prompt {
   font-family: var(--kmp-font-display);
   font-weight: 600;
