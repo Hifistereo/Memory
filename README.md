@@ -46,6 +46,34 @@ Pieejama svaros 400/500/600/700 un ne smagākos — ja kāds virsraksts tiek
 uzstādīts uz 800, pārlūks to imitē, un rezultāts izskatās nedaudz greizi un
 atšķirīgi katrā pārlūkā.
 
+## Offline / PWA
+
+Lietotne ir instalējama un darbojas pilnībā bez tīkla. `scripts/generate-sw.mjs`
+darbojas kā Vite spraudnis katrā `npm run build` reizē — pēc tam, kad Vite
+(ieskaitot `public/` kopēšanu) ir pabeidzis rakstīt `dist/`: tas noskenē
+faktisko izvades direktoriju, aprēķina hash no katra faila ceļa un satura, un
+ieraksta `dist/sw.js` ar šo hash kā cache nosaukumu un pilnu failu sarakstu kā
+precache sarakstu. Nekas šeit nav roku uzturēts — atšķirībā no KidlaTest/
+ENG-learning šajā organizācijā, kuru precache saraksti tiek labota ar roku,
+jo to build izvadei ir stabili faila nosaukumi, šīs app Vite izvade katrā
+build ir hash­ota, tāpēc tikai pati build sistēma droši zina reālo failu
+sarakstu.
+
+Tā kā cache nosaukums un precache saraksts atrodas paša `sw.js` faila baitos,
+katra build, kas maina jebkuru izvades failu, maina arī `sw.js` pašu — tieši
+tas ļauj pārlūkam pamanīt, ka ir pieejama jauna service worker versija.
+
+Instalācija (`caches.addAll`) ir atomiska: ja kāds fails 404, visa instalācija
+neizdodas un iepriekšējā, pilnībā kešotā service worker versija turpina
+kalpot līdz nākamajai veiksmīgajai build. `activate` izdzēš jebkuru cache, kas
+nav pašreizējā versija. `fetch` apstrāde ir network-first navigācijām
+(kešotais `index.html` ir tikai offline fallback) un cache-first visam
+pārējam, jo hash­otu asset URL saturs nekad nemainās.
+
+Lai mainītu kešošanas *loģiku* (nevis failu sarakstu), rediģē
+`scripts/generate-sw.mjs` veidni — `sw.js` pats ir ģenerēts fails, kuru
+nekad nerediģē ar roku.
+
 ## Kopīgais profils
 
 Ja lietotne tiek atvērta no kidmindpath.com, tā seko bērnam, kurš izvēlēts
