@@ -5,8 +5,38 @@ const shuffled = <T,>(items: T[]) => [...items].sort(() => Math.random() - 0.5)
 
 export const numberWords = ['nulle', 'viens', 'divi', 'trīs', 'četri', 'pieci', 'seši', 'septiņi', 'astoņi', 'deviņi', 'desmit']
 
+type Gender = 'm' | 'f'
+type GrammaticalCase = 'nom' | 'acc'
+
+// [nominative, accusative] per gender, for the 0-10 range this game uses.
+const CARDINALS: Record<number, Record<Gender, [string, string]>> = {
+  0: { m: ['nulle', 'nulle'], f: ['nulle', 'nulle'] },
+  1: { m: ['viens', 'vienu'], f: ['viena', 'vienu'] },
+  2: { m: ['divi', 'divus'], f: ['divas', 'divas'] },
+  3: { m: ['trīs', 'trīs'], f: ['trīs', 'trīs'] },
+  4: { m: ['četri', 'četrus'], f: ['četras', 'četras'] },
+  5: { m: ['pieci', 'piecus'], f: ['piecas', 'piecas'] },
+  6: { m: ['seši', 'sešus'], f: ['sešas', 'sešas'] },
+  7: { m: ['septiņi', 'septiņus'], f: ['septiņas', 'septiņas'] },
+  8: { m: ['astoņi', 'astoņus'], f: ['astoņas', 'astoņas'] },
+  9: { m: ['deviņi', 'deviņus'], f: ['deviņas', 'deviņas'] },
+  10: { m: ['desmit', 'desmit'], f: ['desmit', 'desmit'] },
+}
+
+export function numberWord(value: number, gender: Gender = 'm', grammaticalCase: GrammaticalCase = 'nom'): string {
+  const entry = CARDINALS[value]
+  if (!entry) return String(value)
+  return entry[gender][grammaticalCase === 'acc' ? 1 : 0]
+}
+
 export function latvianNumber(value: number): string {
-  return numberWords[value] ?? String(value)
+  return numberWord(value, 'm', 'nom')
+}
+
+// "viens punkts" (singular) vs "divi punkti" / "trīs punkti" (plural) - used for
+// the dots game's memory prompt and its wrong-answer explanation.
+export function pointsPhrase(quantity: number): string {
+  return `${numberWord(quantity, 'm', 'nom')} ${quantity === 1 ? 'punkts' : 'punkti'}`
 }
 
 function numericChoices(answer: number, min: number, max: number, count = 3): number[] {
@@ -59,7 +89,7 @@ const metadata: Record<GameId, GameMeta> = {
   },
   bigger: {
     id: 'bigger', title: 'Lielākais uzvar', shortTitle: 'Lielākais',
-    description: 'Atrodi, kur ir vairāk, un palīdzi pūķītim uzvarēt.', ageBands: ['4-5', '5-6'], ageLabel: '4–6 gadi',
+    description: 'Atrodi, kur ir vairāk, un palīdzi pūķim uzvarēt.', ageBands: ['4-5', '5-6'], ageLabel: '4–6 gadi',
     skill: 'Vairāk un mazāk • salīdzināšana', color: '#E4F3F7', accent: '#287E91', icon: 'dragon',
   },
   path: {
@@ -76,13 +106,13 @@ const metadata: Record<GameId, GameMeta> = {
 
 function createDotRound(level: number): GameRound {
   const quantity = randomInt(1, level === 1 ? 2 : 3)
-  return { kind: 'dots', quantity, choices: numericChoices(quantity, 1, 3, level === 1 ? 2 : 3), prompt: 'Atceries punktiņus!', speech: `Atceries: ${latvianNumber(quantity)} punkti.` }
+  return { kind: 'dots', quantity, choices: numericChoices(quantity, 1, 3, level === 1 ? 2 : 3), prompt: 'Atceries punktiņus!', speech: `Atceries: ${pointsPhrase(quantity)}.` }
 }
 
 const objects = [
-  { one: 'ābolu', many: 'ābolus', icon: 'apple' },
-  { one: 'bumbieri', many: 'bumbierus', icon: 'pear' },
-  { one: 'zīli', many: 'zīles', icon: 'acorn' },
+  { one: 'ābolu', many: 'ābolus', icon: 'apple', gender: 'm' as const },
+  { one: 'bumbieri', many: 'bumbierus', icon: 'pear', gender: 'm' as const },
+  { one: 'zīli', many: 'zīles', icon: 'acorn', gender: 'f' as const },
 ]
 
 function createCountRound(level: number): GameRound {
@@ -90,7 +120,8 @@ function createCountRound(level: number): GameRound {
   const target = randomInt(1, max)
   const object = objects[randomInt(0, objects.length - 1)]
   const noun = target === 1 ? object.one : object.many
-  return { kind: 'count', target, object: object.icon, choices: numericChoices(target, 1, max), prompt: `Ieliec grozā ${target} ${noun}!`, speech: `Ieliec grozā ${latvianNumber(target)} ${noun}.` }
+  const word = numberWord(target, object.gender, 'acc')
+  return { kind: 'count', target, object, choices: numericChoices(target, 1, max), prompt: `Ieliec grozā ${word} ${noun}!`, speech: `Ieliec grozā ${word} ${noun}.` }
 }
 
 function sumFor(value: number): [number, number] {
@@ -118,28 +149,38 @@ function createPathRound(level: number): GameRound {
   const max = level === 1 ? 5 : 10
   if (level === 1) {
     const target = randomInt(1, max)
-    return { kind: 'path', target, max, prompt: `Atrodi skaitli ${target}!`, speech: `Atrodi skaitli ${latvianNumber(target)}.` }
+    return { kind: 'path', target, max, prompt: `Atrodi skaitli ${latvianNumber(target)}!`, speech: `Atrodi skaitli ${latvianNumber(target)}.` }
   }
   const operation = Math.random() > .5 ? 'plus' : 'minus'
   const start = operation === 'plus' ? randomInt(1, max - 1) : randomInt(2, max)
   const target = operation === 'plus' ? start + 1 : start - 1
-  const word = operation === 'plus' ? 'vienu uz priekšu' : 'vienu atpakaļ'
-  return { kind: 'path', target, max, start, operation, prompt: `No ${start} lec ${word}!`, speech: `No ${latvianNumber(start)} lec ${word}.` }
+  const direction = operation === 'plus' ? 'vienu uz priekšu' : 'vienu atpakaļ'
+  const phrase = `Sāc pie skaitļa ${latvianNumber(start)} un lec ${direction}`
+  return { kind: 'path', target, max, start, operation, prompt: `${phrase}!`, speech: `${phrase}.` }
 }
 
 const marketItems = [
-  { name: 'ābolus', icon: 'apple' }, { name: 'bumbierus', icon: 'pear' }, { name: 'burkānus', icon: 'carrot' }, { name: 'zemenes', icon: 'berry' },
+  { nameOne: 'ābolu', namePl: 'ābolus', icon: 'apple', gender: 'm' as const },
+  { nameOne: 'bumbieri', namePl: 'bumbierus', icon: 'pear', gender: 'm' as const },
+  { nameOne: 'burkānu', namePl: 'burkānus', icon: 'carrot', gender: 'm' as const },
+  { nameOne: 'zemeni', namePl: 'zemenes', icon: 'berry', gender: 'f' as const },
 ]
+
+function phraseForItem(item: { nameOne: string; namePl: string; gender: Gender; count: number }): string {
+  const noun = item.count === 1 ? item.nameOne : item.namePl
+  return `${numberWord(item.count, item.gender, 'acc')} ${noun}`
+}
 
 function createMarketRound(level: number): GameRound {
   const firstIndex = randomInt(0, marketItems.length - 1)
   const secondIndex = (firstIndex + randomInt(1, marketItems.length - 1)) % marketItems.length
   const max = level <= 1 ? 4 : 5
-  const first = { ...marketItems[firstIndex], count: randomInt(1, max) }
-  const second = level >= 2 ? { ...marketItems[secondIndex], count: randomInt(1, Math.min(4, max)) } : undefined
-  const text = second ? `${first.count} ${first.name} un ${second.count} ${second.name}` : `${first.count} ${first.name}`
-  const spoken = second ? `${latvianNumber(first.count)} ${first.name} un ${latvianNumber(second.count)} ${second.name}` : `${latvianNumber(first.count)} ${first.name}`
-  return { kind: 'market', first, second, prompt: `Lūdzu, ${text}!`, speech: `Lūdzu, paņem ${spoken}.` }
+  const firstItem = { ...marketItems[firstIndex], count: randomInt(1, max) }
+  const secondItem = level >= 2 ? { ...marketItems[secondIndex], count: randomInt(1, Math.min(4, max)) } : undefined
+  const first = { name: firstItem.namePl, icon: firstItem.icon, count: firstItem.count }
+  const second = secondItem ? { name: secondItem.namePl, icon: secondItem.icon, count: secondItem.count } : undefined
+  const text = secondItem ? `${phraseForItem(firstItem)} un ${phraseForItem(secondItem)}` : phraseForItem(firstItem)
+  return { kind: 'market', first, second, prompt: `Lūdzu, ${text}!`, speech: `Lūdzu, paņem ${text}.` }
 }
 
 function evaluate(round: GameRound, answer: unknown): boolean {

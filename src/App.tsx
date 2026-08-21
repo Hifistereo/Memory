@@ -82,7 +82,7 @@ function Home({ profile, ageFilter, setAgeFilter, onGame, onProfiles, onCaregive
 
     <section className="welcome-band">
       <div><p className="eyebrow">Sveiks, {profile.nickname}!</p><h1>Ko šodien<br/><em>atklāsim?</em></h1><p>Izvēlies spēli un dodies mazā piedzīvojumā.</p></div>
-      <div className="welcome-art" aria-hidden="true"><span className="hill hill-one"/><span className="hill hill-two"/><GameArtwork id="bigger"/><i className="flower f1"/><i className="flower f2"/></div>
+      <div className="welcome-art" aria-hidden="true"><span className="hill hill-one"/><span className="hill hill-two"/><img className="hero-portrait" src={`${import.meta.env.BASE_URL}assets/home/hero-child.webp`} alt="" aria-hidden="true"/><i className="flower f1"/><i className="flower f2"/></div>
     </section>
 
     <section className="games-section">
