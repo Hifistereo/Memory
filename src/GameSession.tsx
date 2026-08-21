@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Check, Minus, RotateCcw, Volume2 } from 'lucide-react'
+import { ArrowLeft, Minus, RotateCcw, Volume2 } from 'lucide-react'
 import { DotGroup, GameArtwork, ItemIcon } from './Artwork'
-import { games, latvianNumber, recordAttempt } from './games'
+import { games, numberWord, pointsPhrase, recordAttempt } from './games'
 import type { GameId, GameProgress, GameRound, Profile } from './types'
 import { useSpeech } from './useSpeech'
 
@@ -12,6 +12,8 @@ interface Props {
   onProgress: (gameId: GameId, progress: GameProgress) => void
 }
 
+export const AUTO_ADVANCE_DELAY_MS = 1100
+
 const encouragement = ['Lieliski!', 'Tev izdodas!', 'Pareizi!', 'Brīnišķīgi!']
 
 function Representation({ value, mode, sum }: { value: number; mode: 'dots' | 'number' | 'sum'; sum?: [number, number] }) {
@@ -21,10 +23,15 @@ function Representation({ value, mode, sum }: { value: number; mode: 'dots' | 'n
 }
 
 function explanation(round: GameRound, answer: unknown): string {
-  if (round.kind === 'dots') return `Te bija ${round.quantity}. Saskaiti: ${latvianNumber(round.quantity)}.`
-  if (round.kind === 'count') return Number(answer) < round.target ? `Vajag vēl! Grozā jābūt ${round.target}.` : `Mazliet par daudz. Grozā jābūt ${round.target}.`
-  if (round.kind === 'bigger') return `${Math.max(round.left, round.right)} ir vairāk nekā ${Math.min(round.left, round.right)}.`
-  if (round.kind === 'path') return `Pareizais akmens ir ${round.target}.`
+  if (round.kind === 'dots') return `Te bija ${pointsPhrase(round.quantity)}.`
+  if (round.kind === 'count') {
+    const noun = round.target === 1 ? round.object.one : round.object.many
+    const word = numberWord(round.target, round.object.gender, 'acc')
+    const lead = Number(answer) < round.target ? 'Vajag vēl!' : 'Mazliet par daudz.'
+    return `${lead} Grozā jāieliek tieši ${word} ${noun}.`
+  }
+  if (round.kind === 'bigger') return `${numberWord(Math.max(round.left, round.right))} ir vairāk nekā ${numberWord(Math.min(round.left, round.right))}.`
+  if (round.kind === 'path') return `Pareizais akmens ir ${numberWord(round.target)}.`
   return `Apskati sarakstu vēlreiz: ${round.prompt.replace('Lūdzu, ', '').replace('!', '')}.`
 }
 
@@ -69,17 +76,41 @@ export default function GameSession({ gameId, profile, onExit, onProgress }: Pro
   const nextRound = () => {
     if (roundIndex + 1 >= game.sessionLength) {
       const accuracy = progress.recent.slice(-game.sessionLength).filter(Boolean).length / Math.min(game.sessionLength, progress.recent.length || 1)
-      const finished = { ...progress, sessions: progress.sessions + 1, stars: progress.stars + Math.max(1, Math.round(accuracy * 3)) }
+      const stars = Math.max(1, Math.round(accuracy * 3))
+      const finished = { ...progress, sessions: progress.sessions + 1, stars: progress.stars + stars }
       setProgress(finished)
       onProgress(gameId, finished)
       setCompleted(true)
-      speak(`Spēle pabeigta. Tu ieguvi ${Math.max(1, Math.round(accuracy * 3))} zvaigznes!`)
+      const starWord = stars === 1 ? 'zvaigzni' : 'zvaigznes'
+      speak(`Spēle pabeigta. Tu ieguvi ${numberWord(stars, 'f', 'acc')} ${starWord}!`)
       return
     }
     const index = roundIndex + 1
     setRoundIndex(index)
     setRound(game.createRound(progress.level, index))
   }
+
+  useEffect(() => {
+    if (!feedback?.correct) return
+    const timer = window.setTimeout(nextRound, AUTO_ADVANCE_DELAY_MS)
+    return () => window.clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feedback])
+
+  useEffect(() => {
+    if (round.kind === 'count' && countPhase === 'collect' && selectedCount === round.target) {
+      setCountPhase('number')
+      speak('Cik gardumu ir grozā?')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCount, round, countPhase])
+
+  useEffect(() => {
+    if (round.kind !== 'market' || feedback || visibleMemory) return
+    const items = [round.first, ...(round.second ? [round.second] : [])]
+    if (items.every((item) => marketCounts[item.icon] === item.count)) submit(marketCounts)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [marketCounts, round, feedback, visibleMemory])
 
   const replay = () => {
     setVisibleMemory(true)
@@ -128,9 +159,8 @@ export default function GameSession({ gameId, profile, onExit, onProgress }: Pro
 
         {round.kind === 'count' && <div className="count-game-area">
           {countPhase === 'collect' ? <>
-            <div className="object-pile">{Array.from({ length: Math.max(8, round.target + 2) }, (_, i) => <button key={i} onClick={() => setSelectedCount((n) => Math.min(8, n + 1))} aria-label="Ielikt grozā"><ItemIcon name={round.object} size="lg"/></button>)}</div>
-            <div className="basket-zone"><div className="basket-items">{Array.from({ length: selectedCount }, (_, i) => <button key={i} onClick={() => setSelectedCount((n) => Math.max(0, n - 1))} aria-label="Izņemt no groza"><ItemIcon name={round.object}/></button>)}</div><div className="basket-illustration"><span>{selectedCount}</span></div></div>
-            <button className="check-button" onClick={() => selectedCount === round.target ? (setCountPhase('number'), setFeedback(null)) : submit(selectedCount)}><Check/> Gatavs</button>
+            <div className="object-pile">{Array.from({ length: Math.max(8, round.target + 2) }, (_, i) => <button key={i} onClick={() => setSelectedCount((n) => Math.min(8, n + 1))} aria-label="Ielikt grozā"><ItemIcon name={round.object.icon} size="lg"/></button>)}</div>
+            <div className="basket-zone"><div className="basket-items">{Array.from({ length: selectedCount }, (_, i) => <button key={i} onClick={() => setSelectedCount((n) => Math.max(0, n - 1))} aria-label="Izņemt no groza"><ItemIcon name={round.object.icon}/></button>)}</div><div className="basket-illustration"><span>{selectedCount}</span></div></div>
           </> : <div className="number-question"><p>Cik gardumu ir grozā?</p><div className="choice-row">{round.choices.map((number) => <button className="number-choice" key={number} onClick={() => submit(number)}>{number}</button>)}</div></div>}
         </div>}
 
@@ -148,11 +178,10 @@ export default function GameSession({ gameId, profile, onExit, onProgress }: Pro
 
         {round.kind === 'market' && <div className="market-game-area">
           <div className={`shopping-note ${visibleMemory ? '' : 'folded'}`}>{visibleMemory ? <><span>Iepirkumu saraksts</span><strong>{round.first.count} × {round.first.name}{round.second ? `  •  ${round.second.count} × ${round.second.name}` : ''}</strong></> : <><span>Saraksts nolikts malā</span><strong>Vai atceries?</strong></>}</div>
-          <div className="market-shelves">{[round.first, ...(round.second ? [round.second] : [])].map((item) => <div className="market-item" key={item.icon}><ItemIcon name={item.icon} size="lg"/><strong>{item.name}</strong><div className="counter"><button onClick={() => setMarketCounts((c) => ({ ...c, [item.icon]: Math.max(0, (c[item.icon] || 0) - 1) }))} aria-label={`Mazāk ${item.name}`}><Minus/></button><span>{marketCounts[item.icon] || 0}</span><button onClick={() => setMarketCounts((c) => ({ ...c, [item.icon]: Math.min(8, (c[item.icon] || 0) + 1) }))} aria-label={`Vairāk ${item.name}`}>+</button></div></div>)}</div>
-          <button className="check-button" onClick={() => submit(marketCounts)}><Check/> Pārbaudīt maisiņu</button>
+          <div className="market-shelves">{[round.first, ...(round.second ? [round.second] : [])].map((item) => <div className="market-item" key={item.icon}><ItemIcon name={item.icon} size="lg"/><strong>{item.name}</strong><div className="counter"><button onClick={() => setMarketCounts((c) => ({ ...c, [item.icon]: Math.max(0, (c[item.icon] || 0) - 1) }))} aria-label={`Mazāk ${item.name}`} disabled={visibleMemory || feedback?.correct}><Minus/></button><span>{marketCounts[item.icon] || 0}</span><button onClick={() => setMarketCounts((c) => ({ ...c, [item.icon]: Math.min(8, (c[item.icon] || 0) + 1) }))} aria-label={`Vairāk ${item.name}`} disabled={visibleMemory || feedback?.correct}>+</button></div></div>)}</div>
         </div>}
 
-        {feedback && <div className={`feedback-card ${feedback.correct ? 'correct' : 'try-again'}`} role="status"><span>{feedback.correct ? '✓' : '•'}</span><p>{feedback.text}</p>{feedback.correct && <button onClick={nextRound}>Turpināt <span>→</span></button>}</div>}
+        {feedback && <div className={`feedback-card ${feedback.correct ? 'correct' : 'try-again'}`} role="status"><span>{feedback.correct ? '✓' : '•'}</span><p>{feedback.text}</p></div>}
       </section>
     </main>
   )

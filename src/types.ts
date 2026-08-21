@@ -49,9 +49,16 @@ export interface GameMeta {
   icon: string
 }
 
+export interface CountObject {
+  icon: string
+  gender: 'm' | 'f'
+  one: string
+  many: string
+}
+
 export type GameRound =
   | { kind: 'dots'; prompt: string; speech: string; quantity: number; choices: number[] }
-  | { kind: 'count'; prompt: string; speech: string; target: number; object: string; choices: number[] }
+  | { kind: 'count'; prompt: string; speech: string; target: number; object: CountObject; choices: number[] }
   | { kind: 'bigger'; prompt: string; speech: string; left: number; right: number; leftMode: 'dots' | 'number' | 'sum'; rightMode: 'dots' | 'number' | 'sum'; leftSum?: [number, number]; rightSum?: [number, number] }
   | { kind: 'path'; prompt: string; speech: string; target: number; max: number; start?: number; operation?: 'plus' | 'minus' }
   | { kind: 'market'; prompt: string; speech: string; first: { name: string; icon: string; count: number }; second?: { name: string; icon: string; count: number } }
